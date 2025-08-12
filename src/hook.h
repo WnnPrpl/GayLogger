@@ -17,5 +17,7 @@ typedef struct {
 bool install_keyboard_hook(void);
 void uninstall_keyboard_hook(void);
 void process_sessions(void);
+void sessions_to_buffer(void);
+void flush_current_line(void);
 
 #endif

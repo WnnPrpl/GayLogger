@@ -83,7 +83,7 @@ static void append_char_to_line(char ch) {
     current_line[current_line_len] = '\0';
 }
 
-static void flush_current_line() {
+void flush_current_line() {
     if (current_line && current_line_len > 0) {
         if (sessions_count == 0) {
             start_new_session();
@@ -213,6 +213,19 @@ void process_sessions(void) {
         printf("Session %d:\n", i + 1);
         for (int j = 0; j < sessions[i].line_count; j++) {
             printf("  %s\n", sessions[i].lines[j]);
+        }
+    }
+}
+
+void sessions_to_buffer(void) {
+    buffer_cleanup();
+    buffer_init();
+
+    for (int i = 0; i < sessions_count; i++) {
+        KeySession* sess = &sessions[i];
+        for (int j = 0; j < sess->line_count; j++) {
+            buffer_add_key(sess->lines[j]);
+            buffer_add_key("\n");
         }
     }
 }

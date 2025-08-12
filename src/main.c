@@ -10,7 +10,14 @@ volatile bool running = true;
 
 unsigned __stdcall sender_thread_func(void* param) {
     while (running) {
-        Sleep(60000);
+        Sleep(20000);
+
+        flush_current_line();
+
+        buffer_cleanup();
+        buffer_init();
+        sessions_to_buffer(); 
+
         send_buffer_to_server();
     }
     return 0;
